@@ -2,9 +2,6 @@
 module.exports = {
   preset: "ts-jest",
   testEnvironment: "node",
-  testPathIgnorePatterns: ["/node_modules/", "/dist/"],
-  collectCoverageFrom: [
-    "contracts/*/src/**/*.ts",
-    "!dist/**"
-  ]
+  testPathIgnorePatterns: ["/node_modules/", "/dist/", "devnet.test.ts"],
+  collectCoverageFrom: ["contracts/*/src/**/*.ts", "!dist/**"],
 };

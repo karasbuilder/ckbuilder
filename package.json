@@ -1,5 +1,5 @@
 {
-  "name": "ckb-hello-world",
+  "name": "ckbuilder",
   "version": "0.1.0",
   "description": "CKB JavaScript Smart Contract project",
   "private": true,
@@ -13,7 +13,8 @@
     "deploy:build": "run-s build deploy",
     "deploy:debug": "run-s build:debug deploy",
     "test": "run-s build test:only",
-    "test:only": "jest",
+    "test:only": "jest --verbose",
+    "test:devnet": "jest --testPathIgnorePatterns=/node_modules/ --testPathPattern=devnet --verbose",
     "add-contract": "node scripts/add-contract.js",
     "clean": "rimraf dist",
     "format": "prettier --write ."

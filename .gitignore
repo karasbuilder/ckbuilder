@@ -32,3 +32,5 @@ Thumbs.db
 *.swp
 *.swo
 /tests
+.karasu-meta
+.repo.yaml
