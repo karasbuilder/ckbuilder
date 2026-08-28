@@ -1,8 +1,6 @@
 {
   "compilerOptions": {
-    /* The QuickJS supports ES2022 */
     "module": "ESNext",
-    /* Use Node module resolution for better compatibility */
     "moduleResolution": "Node",
     "target": "ES2022",
     "incremental": true,
