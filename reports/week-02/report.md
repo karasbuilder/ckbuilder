@@ -20,7 +20,6 @@ So this week I mostly wrote tests that fail on purpose.
 - [Cell](https://docs.nervos.org/docs/tech-explanation/cell) and [Capacity](https://docs.nervos.org/docs/tech-explanation/capacity)
 - [ckb-js-vm docs](https://docs.nervos.org/docs/script/js/js-quick-start), re-read for the args layout
 
-Still to do: CKB Academy lessons 1 and 2, and Introduction to Script.
 
 ## Key learnings
 
