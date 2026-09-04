@@ -10,24 +10,22 @@
 
 ## Summary
 
-Week 2 was about what a transaction does. This week was about what it is made of. Two things I had read about but never checked turned out to be measurable, so I measured them instead of taking the docs' word for it.
+Week 2 was about what a transaction does. This week was about what it is made of. Two things I had read about but never checked turned out to be measurable, so I measured them.
 
-Storing data on a cell gave me a number I can defend: 44 bytes of text costs exactly 105 CKB of locked capacity, and the node rejects 104.
-
-I also got to the Fungible Token exercise earlier than planned, because it was the thing I said I'd do next when I sent the week 2 report. Issuing an xUDT and then failing to mint one extra token was the most useful half hour of the week.
+I also did the Fungible Token exercise, earlier than planned, because that's what I told Neon I'd do next.
 
 ## Courses completed
 
 - [Store Data on Cell](https://docs.nervos.org/docs/dapp/store-data-on-cell), second of the five basic exercises. Devnet first, then public testnet.
 - [Create Fungible Token](https://docs.nervos.org/docs/dapp/create-token), third of the five. Issued an xUDT on both chains.
 - [RFC 0052, xUDT](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0052-extensible-udt/0052-extensible-udt.md), the owner mode rule and the u128 amount layout.
-- [Cell](https://docs.nervos.org/docs/tech-explanation/cell) and [Capacity](https://docs.nervos.org/docs/tech-explanation/capacity), re-read for the occupied capacity rule now that there's data in the picture.
+- [Cell](https://docs.nervos.org/docs/tech-explanation/cell) and [Capacity](https://docs.nervos.org/docs/tech-explanation/capacity), re-read now that there's data in the picture.
 
-Both findings below came out of experiments rather than from reading the spec, which is a habit I want to keep.
+Both findings below came from experiments, not from reading the spec.
 
 ## Key learnings
 
-**Script groups are real and I could measure them.** CKB is supposed to group inputs that share an identical script and run that script once per group instead of once per cell. `sendTransactionDry` returns a cycle count, so I built one transaction spending a single cell and another spending two cells with the same lock, and compared:
+**Script groups are real and I could measure them.** CKB is supposed to group inputs that share an identical script and run that script once per group instead of once per cell. `sendTransactionDry` returns a cycle count, so I built one transaction spending a single cell and another spending two cells with the same lock:
 
 ```
 1 input:  1,664,091 cycles
@@ -35,13 +33,11 @@ Both findings below came out of experiments rather than from reading the spec, w
 difference 0 (0.0%)
 ```
 
-Not approximately equal. Identical. The secp256k1 lock ran once and checked one signature for both cells. If it ran per cell that number would have roughly doubled.
+Identical, not just close. The secp256k1 lock ran once and checked one signature for both cells. If it ran per cell that would have roughly doubled.
 
-The consequence I hadn't thought about: a script that only inspects the first cell of its group is broken. Someone can add a second cell to the same group and walk it past a check that only ever looked at index 0. Anything I write later has to iterate the whole group.
+So a script that only inspects the first cell of its group is broken. Someone can add a second cell to the same group and walk it past a check that only ever looked at index 0. Anything I write later has to iterate the whole group.
 
-**`outputs_data` really is a separate array, and the SDK admits it.** I stored 44 bytes and then asked CCC for the cell's occupied size expecting 105. It returned 61.
-
-That is not a bug. `occupiedSize` measures the CellOutput struct, which is capacity plus lock plus type, and stays 61 no matter how much data you attach. The data lives in a parallel `outputs_data` array indexed alongside `outputs`. You have to add its length yourself:
+**I stored 44 bytes, asked CCC for the occupied size expecting 105, and got 61.** Not a bug. `occupiedSize` measures the CellOutput struct, capacity plus lock plus type, and stays 61 no matter how much data you attach. The data lives in a parallel `outputs_data` array indexed alongside `outputs`, so you add its length yourself:
 
 ```
 capacity     8 bytes
@@ -60,29 +56,25 @@ InsufficientCellCapacity(Outputs[0]):
 expected occupied capacity (0x271d94900) <= capacity (0x26be36800)
 ```
 
-`0x271d94900` is 10,500,000,000 shannons, exactly 105 CKB.
+`0x271d94900` is 10,500,000,000 shannons, exactly 105 CKB. One CKB per byte on top of the 61 floor, locked while the cell is live and returned when it's consumed. A deposit, not a fee.
 
-**A token's owner and a token's holder are different people, and the type script args say so.** The Fungible Token exercise was the first time a script's `args` field did real work for me. An xUDT type script carries the owner's lock hash in `args`, and the tokens sit in a cell locked by whoever holds them. Two separate ideas in one cell.
+I read it back with a raw `get_live_cell` call rather than through the tutorial's UI, since the UI proves nothing about the chain:
 
-The rule that falls out of it, from RFC 0052: if the owner's lock appears in the inputs, the transaction is in owner mode and can create supply from nothing. Otherwise the script only lets existing tokens move around. I issued 1,000,000 in owner mode, then had the holder split them 250,000 / 750,000 without the owner involved, and that went through because the totals matched.
+```
+get_live_cell returned: "ckbuilder week 3, the data lives in the cell"
+```
 
-Then I tried to put 750,001 out against 750,000 in, still without the owner:
+The token exercise was the first time a script's `args` field did real work for me. An xUDT type script carries the owner's lock hash in `args`, while the tokens sit in a cell locked by whoever holds them. Owner and holder are two different people in one cell.
+
+The rule from RFC 0052: if the owner's lock is in the inputs, the transaction is in owner mode and can create supply from nothing. Otherwise the script only lets existing tokens move. I issued 1,000,000 in owner mode, then had the holder split them 250,000 / 750,000 without the owner, and that went through because the totals matched. Then I tried 750,001 out against 750,000 in:
 
 ```
 Inputs[0].Type, cause: ValidationFailure: see error code -52
 ```
 
-Rejected, and rejected by xUDT itself, code -52, not by some generic transaction check. Worth noting it surfaced on `Inputs[0].Type` rather than Outputs. The type script sits in both groups and the input side runs first, so that's where it stopped. In week 2 the same kind of failure showed up on `Outputs[0]` because there was no input carrying that type at all.
+Rejected by xUDT itself, its own code -52, not a generic transaction error. And it surfaced on `Inputs[0].Type`, not Outputs. The type script sits in both groups and the input side runs first. In week 2 the same kind of failure showed up on `Outputs[0]` because nothing on the input side carried that type.
 
-The amount itself is 16 bytes of little endian u128 at the front of the cell data, which is why a token cell needs 142 CKB rather than 61: 8 for capacity, 53 for the lock, 65 for the type script, and 16 for the number.
-
-**Storage has a price you can calculate before you pay it.** One CKB per byte, on top of the 61 CKB floor, locked for as long as the cell is live and returned when it's consumed. So it's a deposit, not a fee. Very different from paying gas to write something permanent and never seeing that money again.
-
-**Reading it back over raw RPC was worth the extra step.** The tutorial shows the message in its own UI, which proves nothing about the chain. Calling `get_live_cell` directly and decoding the hex myself is what actually closed the loop:
-
-```
-get_live_cell returned: "ckbuilder week 3, the data lives in the cell"
-```
+The amount is 16 bytes of little endian u128 at the front of the cell data, which is why a token cell needs 142 CKB rather than 61: 8 capacity, 53 lock, 65 type script, 16 for the number.
 
 ## Practical Progress
 
@@ -119,13 +111,13 @@ Transactions from this week:
 | devnet | Same issuance | `0x5d2e4bdf18ad9fe2218eadf540bf6415faae7107e57d9dea999d9e9e87b8b67c` |
 | devnet | Holder splits 1,000,000 into 250,000 + 750,000 | `0x9bae8cf969d7819f99ed7b0713f6d59d443186e98ace00dff441e1ae655ec768` |
 
-The store data write is the same message and the same 105 CKB on both chains, which is what you'd expect when the price is just a byte count. Only the two testnet hashes are worth anyone else checking.
+Only the two testnet hashes are worth anyone else checking. The devnet suites mint new transactions on every run.
 
 ## Challenges
 
-**Two suites quietly fighting over the same account.** `store-data.devnet` and `transfer.devnet` both spend from `PRIVATE_KEY`, and jest runs suites in parallel by default, so they picked the same live cell and one transaction lost. What made it annoying is how it failed: jest reported "Test suite failed to run: Do not know how to serialize a BigInt" rather than anything about the chain, because the error object it was trying to hand back between workers had cycle counts in it. Added `--runInBand` to `test:devnet`. Suites that share on-chain state can't run concurrently.
+**Two suites fighting over the same account.** `store-data.devnet` and `transfer.devnet` both spend from `PRIVATE_KEY`, and jest runs suites in parallel, so they picked the same live cell and one transaction lost. The annoying part was how it failed: jest said "Test suite failed to run: Do not know how to serialize a BigInt" rather than anything about the chain, because the error it was handing between workers had cycle counts in it. Added `--runInBand` to `test:devnet`.
 
-**Expecting 105 and getting 61.** Covered above. I assumed occupied size meant everything the cell costs, and spent a while checking my byte arithmetic before realising the number was correct and my mental model of the cell struct was wrong.
+Also spent a while on the 105 versus 61 thing above, checking my byte arithmetic before working out that the number was right and my model of the cell struct was wrong.
 
 ## Environment
 
@@ -135,7 +127,7 @@ The store data write is the same message and the same 105 CKB on both chains, wh
 
 ## Next week
 
-Scripts properly. The validation model, and Build a Simple Lock, which will be the first script I write that can actually reject a transaction on its own terms rather than just failing to load.
+Scripts properly. The validation model, and Build a Simple Lock, which will be the first script I write that can reject a transaction on its own terms rather than just failing to load.
 
 ## Evidence
 
