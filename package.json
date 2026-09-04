@@ -14,7 +14,7 @@
     "deploy:debug": "run-s build:debug deploy",
     "test": "run-s build test:only",
     "test:only": "jest --verbose",
-    "test:devnet": "jest --testPathIgnorePatterns=/node_modules/ --testPathPattern=devnet --verbose",
+    "test:devnet": "jest --testPathIgnorePatterns=/node_modules/ --testPathPattern=devnet --verbose --runInBand",
     "add-contract": "node scripts/add-contract.js",
     "clean": "rimraf dist",
     "format": "prettier --write ."
