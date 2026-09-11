@@ -14,6 +14,21 @@
           }
         }
       ]
+    },
+    "hash-lock.bc": {
+      "codeHash": "0x6ee184d1f6f96a569ba366c6bd01bdc3382e258ed18c0a0b3a28313331b39ce8",
+      "hashType": "type",
+      "cellDeps": [
+        {
+          "cellDep": {
+            "outPoint": {
+              "txHash": "0x0f79ed0a45747154d92472c4ecd2fc232197bdf94c7f6678b566ad5532f034a5",
+              "index": 0
+            },
+            "depType": "code"
+          }
+        }
+      ]
     }
   },
   "testnet": {
