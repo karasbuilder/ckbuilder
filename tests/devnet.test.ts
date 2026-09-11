@@ -7,7 +7,7 @@ import { buildClient } from "./helper";
 //   npm run test:devnet
 //
 // The node serves :8114 but OffCKB puts an RPC proxy on :28114, and the proxy
-// is what tooling should target — buildClient() handles that, with :8114 as a
+// is what tooling should target - buildClient() handles that, with :8114 as a
 // fallback.
 const client = buildClient("devnet");
 

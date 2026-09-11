@@ -1,8 +1,11 @@
 # Builder Track Weekly Report, Week 4
 
 **Name:** Karas
-**Period:** 5 to 11 September 2026
+
+**Week Ending:** 11 September 2026
+
 **Repo:** https://github.com/karasbuilder/ckbuilder
+
 **Focus:** The script validation model, a lock that can say no, and Type ID
 
 ## 1. Summary
@@ -138,7 +141,7 @@ All devnet, so nobody else can check these hashes. The preimage is printed on pu
 
 ## 8. Next week
 
-Fungible tokens properly. sUDT as the minimal standard against xUDT as the extensible one, now that week 3 issued an xUDT without reading the difference closely. Also start sketching project ideas, since week 7 is when the build gets agreed with Neon.
+Spore and DOBs. Create DOB is the last of the five basic exercises I haven't done - tokens went early, in week 3, so the only token thing still open is reading RFC 0025 against the xUDT I already issued. Also sketching project ideas, because running ahead moved the build forward: the idea gets agreed with Neon in week 6 and the build starts week 7.
 
 ## 9. Evidence
 
