@@ -10,7 +10,7 @@
 
 ## 1. Summary
 
-Minted a cell that holds a PNG, read the PNG back out of the chain, then melted the cell and watched all 573 CKB come home. The round trip is the whole argument for Spore and doing it made the difference from a conventional NFT concrete instead of rhetorical: the token is not a pointer to a file, and the mint is not a payment.
+Minted a cell that holds a PNG, read the PNG back out of the chain, then melted the cell and watched all 573 CKB come home. Doing the round trip is what made the difference from a conventional NFT concrete. The file sits in the cell itself, and the 573 CKB comes back when the cell goes.
 
 The week did not go the way the tutorial suggests. The Spore scripts OffCKB ships are the CoBuild build, so every mint, transfer and melt has to carry a second, signed statement of what the transaction claims to be doing, and the script rejects the transaction if the two disagree. There is no npm package for that in this repo, so I wrote the schemas by hand. They were wrong for about an hour in a way that produces valid bytes and an opaque error code.
 
@@ -49,9 +49,9 @@ table SporeData {
 
 The PNG magic number `89504e470d0a1a0a` is in the cell data, on chain, and reading the live cell and writing `content` to disk produces a file with the same sha256 as the one I minted. There is no gateway, no pin, no host that can disappear. Overhead on top of the file is 33 bytes: 24 of molecule framing and the 9 ascii characters of `image/png`.
 
-**One byte of content is one CKB of locked capacity, and that is the feature.** My image is 414 bytes, so the cell is 573 CKB: 8 for the capacity field, 53 for the lock, 65 for the type, 447 for the data. 414 of those 573 bytes are the picture. The file size is the price, and knowing that changed what I was willing to put on chain.
+**One byte of content is one CKB of locked capacity.** My image is 414 bytes, so the cell is 573 CKB: 8 for the capacity field, 53 for the lock, 65 for the type, 447 for the data. 414 of those 573 bytes are the picture. Knowing that changed what I was willing to put on chain.
 
-**Melting is what makes the price bearable.** A spore can be destroyed by whoever can unlock it, and the capacity returns. Measured, not quoted:
+**Melting is what makes the price bearable.** A spore can be destroyed by whoever can unlock it, and the capacity returns. Measured on chain:
 
 | | Balance, CKB |
 | --- | --- |
@@ -60,11 +60,11 @@ The PNG magic number `89504e470d0a1a0a` is in the cell data, on chain, and readi
 | After melt | 41980786.87893778 |
 | Net cost | 0.0000218 |
 
-The entire 573 CKB came back. What is gone is two transaction fees. So the mint is a **deposit**, not a purchase: the holder collateralises the storage and can exit at any time. A DOB therefore has a floor it cannot fall below, its own redeemable backing, enforced by the storage model instead of by a market.
+The entire 573 CKB came back. What is gone is two transaction fees. The mint is closer to a **deposit** than a purchase: the holder collateralises the storage and can exit whenever they want. That gives a DOB a floor it cannot fall below, held up by the storage model instead of by a market.
 
-**Immutability is not a convention, it is a rejection.** Flipping the last byte of the image and transferring the spore gets error code **61**, `ModifySporePermanentField`. Relabelling `image/png` as `image/gif`, same nine characters so the capacity still balances, gets **61** as well. There is no metadata update and no reveal. If content has to change, that is a new spore, not an edit.
+**The content cannot be edited, and the script is what stops you.** Flipping the last byte of the image and transferring the spore gets error code **61**, `ModifySporePermanentField`. Relabelling `image/png` as `image/gif`, same nine characters so the capacity still balances, gets **61** as well. There is no metadata update and no reveal. If the content has to change, you mint a new spore.
 
-**The spore id is the Type ID rule wearing a different hat.** `args` are `hash(first input outpoint, output index)`, exactly what week 4 worked through for Type ID, and a forged one is refused with **63**. So the same rule that gives a script a stable identity across upgrades gives a DOB a unique, unforgeable one. Minting with an id I chose myself is not possible, because an outpoint spends once.
+**The spore id is the Type ID rule wearing a different hat.** `args` are `hash(first input outpoint, output index)`, exactly what week 4 worked through for Type ID, and a forged one is refused with **63**. The same rule that gives a script a stable identity across upgrades gives a DOB an id nobody else can claim. Minting with an id I chose myself is not possible, because an outpoint spends once.
 
 **CoBuild, which nobody warned me about.** The deployed spore script does not just validate the transaction. It also demands a witness declaring, in a structured and signable form, *what the transaction means*:
 
@@ -79,7 +79,7 @@ where `data` is a `SporeAction`, here `MintSpore { spore_id, to, data_hash }`. T
 
 The point of this is worth stating, because it is not obvious from the error codes: a wallet signing a raw CKB transaction is signing a blob of inputs and outputs no human can read. CoBuild makes the transaction carry a machine-checkable sentence, "mint spore X with content hashing to Y, to address Z", that the script itself verifies is true. It is a signing-surface fix, not a validation fix. The union tags start at `0xff000001` precisely so a CoBuild witness can never be mistaken for a legacy `WitnessArgs`, which is how both can sit in one transaction.
 
-**Clusters are collections the chain agrees with.** A cluster is its own cell type with its own id under the same rule, and its data holds the name and description. A spore that names a cluster has to put the cluster cell in the transaction's cell deps and prove it is entitled to join, which here means the cluster's own lock appears in both the inputs and the outputs. Without the dep it is refused with **6**, `ClusterCellNotInDep`, and a cluster that was never created cannot be claimed at all, because there is no cell to put in the deps. So "this DOB belongs to collection X" is a chain-enforced fact, not a marketplace's assertion. It costs 36 bytes, not 32: `BytesOpt` pays a four-byte length prefix on the 32-byte id.
+**Clusters are collections the chain agrees with.** A cluster is its own cell type with its own id under the same rule, and its data holds the name and description. A spore that names a cluster has to put the cluster cell in the transaction's cell deps and prove it is entitled to join, which here means the cluster's own lock appears in both the inputs and the outputs. Without the dep it is refused with **6**, `ClusterCellNotInDep`, and a cluster that was never created cannot be claimed at all, because there is no cell to put in the deps. Which means the chain is what checks "this DOB belongs to collection X", instead of a marketplace asserting it. It costs 36 bytes, not 32: `BytesOpt` pays a four-byte length prefix on the 32-byte id.
 
 **sUDT against xUDT, and the assumption I got wrong.** Both standards write the amount as a little endian u128 in the first 16 bytes of cell data, and I checked that the sUDT cell's data is byte-identical to the week-3 xUDT cell's for the same amount. Both hold the owner lock hash in the type script args, and both give the same `-52` when a holder tries to mint one extra token.
 
@@ -89,7 +89,7 @@ The flags are in the **type script args**, after the owner lock hash, not in the
 
 Flag 0 means no extension and mints cleanly. Flag 1 means a molecule `ScriptVec` naming extension scripts follows, and the two ways of getting that wrong fail differently, which is how I know the parsing order: a bare 32-byte script hash is refused with **47**, `ERROR_INVALID_MOL_FORMAT`, because it is not a `ScriptVec` and xUDT never gets as far as looking for a script. A well formed `ScriptVec` naming a script that is not deployed anywhere is refused with **1**, from `ckb_dlopen2` failing to find a dep cell. sUDT has nowhere to put any of this, because rule 2 defines the args as the owner lock hash and stops.
 
-So the choice is not sUDT against xUDT. It is whether the token will ever need an extension, and xUDT costs nothing extra until it does.
+The question worth asking is whether the token will ever need an extension. xUDT costs nothing extra until it does.
 
 ## 5. Practical progress
 
