@@ -85,7 +85,9 @@ The point of this is worth stating, because it is not obvious from the error cod
 
 I assumed the difference was that xUDT reads on past the amount where sUDT stops. It does not. I minted a 20-byte cell under each, four junk bytes after the amount, and both accepted it. Then I moved each cell without the owner lock, expecting xUDT to finally read its extension field, and both accepted that too.
 
-The flags are in the **type script args**, after the owner lock hash, not in the cell data. That is why adding them changes the token's identity: the type script hash changes, so cells under plain args and cells under extended args are not fungible with each other even though the code hash is the same. Naming an extension script that is not in the cell deps is refused with **47**. sUDT has nowhere to put any of this, because rule 2 defines the args as the owner lock hash and stops.
+The flags are in the **type script args**, after the owner lock hash, not in the cell data. That is why adding them changes the token's identity: the type script hash changes, so cells under plain args and cells under extended args are not fungible with each other even though the code hash is the same.
+
+Flag 0 means no extension and mints cleanly. Flag 1 means a molecule `ScriptVec` naming extension scripts follows, and the two ways of getting that wrong fail differently, which is how I know the parsing order: a bare 32-byte script hash is refused with **47**, `ERROR_INVALID_MOL_FORMAT`, because it is not a `ScriptVec` and xUDT never gets as far as looking for a script. A well formed `ScriptVec` naming a script that is not deployed anywhere is refused with **1**, from `ckb_dlopen2` failing to find a dep cell. sUDT has nowhere to put any of this, because rule 2 defines the args as the owner lock hash and stops.
 
 So the choice is not sUDT against xUDT. It is whether the token will ever need an extension, and xUDT costs nothing extra until it does.
 
@@ -110,13 +112,13 @@ New files:
 | `tests/spore-cobuild.mock.test.ts` | 6 | The witness offline: the `0xff000001` tag, the action round trip, the 281-byte size, and the `seal` before `message` trap. |
 | `tests/spore.devnet.test.ts` | 16 | Mint, verify the id rule, render the PNG back from chain, capacity accounting, the three rejections on transfer, melt, and three rejections on mint. |
 | `tests/spore-cluster.devnet.test.ts` | 4 | Cluster creation, a spore joining it for real, and the two ways a membership claim fails. |
-| `tests/sudt.devnet.test.ts` | 8 | sUDT issued and compared with the week-3 xUDT: same amount layout, same args rule, same `-52`, and where the extension actually lives. |
+| `tests/sudt.devnet.test.ts` | 10 | sUDT issued and compared with the week-3 xUDT: same amount layout, same args rule, same `-52`, and where the extension actually lives. |
 
 Counts, against week 4:
 
 ```
 npm test             9 suites, 44 tests passed   (was 7 suites, 32 tests)
-npm run test:devnet 12 suites, 66 tests passed   (was 9 suites, 38 tests)
+npm run test:devnet 12 suites, 68 tests passed   (was 9 suites, 38 tests)
 ```
 
 Devnet transactions:
@@ -127,7 +129,7 @@ Devnet transactions:
 | Same spore melted | `0x661f9cba3dc98ce067045878b4d35f272b3eab66e394eb454777f4d4b33d74af` |
 | Cluster created | `0x14affe99562fa635cc23dd064bbfb416f460bbcf6d09bca02e12934a402608a3` |
 | Spore minted into that cluster | `0x73b9532f1292dbd7ccf93dc61aaa2c05cf6b2e7cd7958c85b63ee14772e11bbe` |
-| sUDT issued, 1,000,000 | `0xc2485930c8c74c61209c4fde908a62c33f05a513312e7ce8ae35948f8db0adcf` |
+| sUDT issued, 1,000,000 | `0xc58cea75b8ebd0e345130bfb5b7b5ef22f141c7a9b9cb807c98569bfa479e682` |
 
 | Item | Value |
 | --- | --- |
@@ -149,9 +151,10 @@ Error codes collected this week, all of them the script's own rather than generi
 | Code | Meaning | How I got it |
 | --- | --- | --- |
 | 6 | `ClusterCellNotInDep` | Joining a cluster without the cluster cell in the deps |
-| 8 | `InvliadCoBuildWitnessLayout` | No CoBuild witness, or one the script cannot parse |
+| 8 | `InvliadCoBuildWitnessLayout` (typo is in the contract source) | No CoBuild witness, or one the script cannot parse |
 | 12 | `SporeActionFieldMismatch` | An action naming a different spore, or a wrong data hash |
-| 47 | xUDT, extension not in deps | Args naming an extension script with no dep cell |
+| 47 | xUDT `ERROR_INVALID_MOL_FORMAT` | Flag 1 args that are not a molecule `ScriptVec` |
+| 1 | xUDT, `ckb_dlopen2` found nothing | Flag 1 naming an extension script with no dep cell |
 | 61 | `ModifySporePermanentField` | Editing the content, or relabelling the content type |
 | 63 | `InvalidSporeID` | An id not derived from the first input |
 | -52 | xUDT and sUDT, amount increased | A holder minting one extra token without the owner lock |
@@ -193,5 +196,5 @@ In `reports/week-05/images/`.
 | `w5-05-cluster.png` | Cluster created, a spore joined to it, and both ways the claim fails |
 | `w5-06-sudt-vs-xudt.png` | sUDT issued and compared with the week-3 xUDT |
 | `w5-07-npm-test.png` | `npm test`, 9 suites, 44 tests |
-| `w5-08-test-devnet.png` | `npm run test:devnet`, 12 suites, 66 tests |
+| `w5-08-test-devnet.png` | `npm run test:devnet`, 12 suites, 68 tests |
 | `w5-dob.png` | The DOB itself, as read back off the chain |

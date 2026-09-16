@@ -233,15 +233,15 @@ describe("sUDT on devnet, read against the xUDT from week 3", () => {
     expect(udtType(SUDT, ownerLock.hash()).args).toBe(ownerLock.hash());
   });
 
-  it("names an extension script that is not in the deps, and is refused", async () => {
+  // Flag 1 is XUDTFlagsInArgs: what follows the flags is a molecule ScriptVec
+  // naming extension scripts. Three ways that can go, and they are three
+  // different errors, which is the useful part.
+  const mintWithArgs = async (suffix: string) => {
+    const type = xudtWithArgs(suffix);
+    const capacity = 8 + 53 + 32 + 1 + (type.args.length - 2) / 2 + 16;
     const tx = ccc.Transaction.from({
       outputs: [
-        {
-          lock: holderLock,
-          // flags 1: an extension script hash list follows in the args
-          type: xudtWithArgs("01000000" + "ab".repeat(32)),
-          capacity: ccc.fixedPointFrom(8 + 53 + 32 + 1 + 68 + 16),
-        },
+        { lock: holderLock, type, capacity: ccc.fixedPointFrom(capacity) },
       ],
       outputsData: [amountData(ISSUED)],
       cellDeps: [XUDT_DEP],
@@ -252,13 +252,48 @@ describe("sUDT on devnet, read against the xUDT from week 3", () => {
     );
     await tx.completeInputsByCapacity(owner);
     await tx.completeFeeBy(owner, 1000);
+    return owner.signTransaction(tx);
+  };
 
+  it("flag 0 means no extension, and the cell mints", async () => {
+    const cycles = await client.sendTransactionDry(
+      await mintWithArgs("00000000"),
+    );
+
+    console.log(`xUDT flag 0, 36-byte args accepted, ${cycles} cycles`);
+    expect(cycles).toBeGreaterThan(0n);
+  });
+
+  it("flag 1 with 32 raw bytes is rejected with 47, a molecule error", async () => {
     const error = await client
-      .sendTransactionDry(await owner.signTransaction(tx))
+      .sendTransactionDry(await mintWithArgs("01000000" + "ab".repeat(32)))
       .catch((e) => e);
 
-    console.log(`xUDT naming a missing extension -> code ${errorCode(error)}`);
+    console.log(`xUDT flag 1 + raw bytes -> code ${errorCode(error)}`);
     expect(String(error)).toContain("Outputs[0].Type");
-    expect(errorCode(error)).toBe(47); // xUDT's own code for a missing extension
+    // ERROR_INVALID_MOL_FORMAT in ckb-production-scripts/c/rce.h. A bare
+    // script hash is not a ScriptVec, so xUDT never gets as far as looking
+    // for the script.
+    expect(errorCode(error)).toBe(47);
+  });
+
+  it("flag 1 naming a script that is not deployed is rejected with 1", async () => {
+    const vec = ccc.hexFrom(
+      ccc.mol.vector(ccc.Script).encode([
+        ccc.Script.from({
+          codeHash: `0x${"ab".repeat(32)}`,
+          hashType: "data",
+          args: "0x",
+        }),
+      ]),
+    );
+    const error = await client
+      .sendTransactionDry(await mintWithArgs("01000000" + vec.slice(2)))
+      .catch((e) => e);
+
+    console.log(`xUDT flag 1 + missing script -> code ${errorCode(error)}`);
+    // Now the args parse, so xUDT tries to dlopen the extension and cannot
+    // find a dep cell holding it. Different failure, different code.
+    expect(errorCode(error)).toBe(1);
   });
 });
