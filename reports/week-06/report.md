@@ -22,7 +22,6 @@ The part that taught me the most was giving the testnet key to two different CCC
 - [ ] Sign a testnet transfer in the app with my own JoyID wallet
 - [x] Spend CKB from an EVM account through Omnilock, on testnet
 - [x] Move this week's evidence off devnet
-- [ ] Agree the build project with Neon
 
 No faucet run this week. The testnet account from week 1 still held 298,125 CKB.
 
