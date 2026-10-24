@@ -21,7 +21,7 @@ The public demo is updated: the live bundle contains the boss crests, the feedba
 | 19 Oct | `c0e35f6` upgrade audio | Adaptive battle music: three synced 16-bar loops per district (**normal**, **pressure** on the last wave, **boss** while the boss is alive), 15 tracks in total. Seven new SFX (deploy, shoot, merge, wave, boss, win, lose). Boss-wave alert with portrait and name. HUD shows waves left and the threatened lane; holding a cat over a same-level cat shows a **Release to merge** cue. Wallet made optional for battles. |
 | 20 Oct | `daeb174` update: balance | **Boss crest** on every fourth map node (locked, ready, cleared states). **Zombie Dalmatian** gets an acid throw in later waves of districts 4-5: it marks two tiles, gives a 3-second warning, then slows cats' fire rate by 50% for 2.5 s. Killing it during the warning cancels the throw. New acid VFX and impact sound. Public demo redeployed to Cloudflare Pages. |
 | 23 Oct | `5d6feb0` + uncommitted | Game: `MAX_SKIN_ID` and reveal math moved from 15 to 21 lines, Vault and crate reveal updated. Contract: CatCell type script v4 (21 lines), built and deployed to testnet (section 4). |
-| 24 Oct | uncommitted, already on the live demo | Three new bosses (**Rail Ratchet**, **Filter Hound**, **Signal Hound**, now 10 in total), a `laneShift` boss ability, three new enemies (**Coil Hound**, **Bell Mourner**, **Breaker Hound**), redrawn boss art. Skins now unlock only by on-chain ownership, not by player level. Cat upgrade step reduced from +8% to +5% damage per tier. |
+| 24 Oct |  already on the live demo | Three new bosses (**Rail Ratchet**, **Filter Hound**, **Signal Hound**, now 10 in total), a `laneShift` boss ability, three new enemies (**Coil Hound**, **Bell Mourner**, **Breaker Hound**), redrawn boss art. Skins now unlock only by on-chain ownership, not by player level. Cat upgrade step reduced from +8% to +5% damage per tier. |
 
 **Bug fixes in the same commits:**
 
@@ -98,7 +98,4 @@ I don't have a new mint or reveal transaction against v4 yet, so I am not claimi
 | v4 deploy | Transaction `committed` on testnet RPC; data hash matches the built binary |
 | Public demo | Live bundle contains the new bosses, feedback form, wallet modal text and 1/21 odds |
 
-Week 9 had 446 game tests; this week added tests for adaptive music and SFX, battle HUD, acid, the feedback form and the new Vault states.
-
-Not checked: a real wallet signing a v4 mint and reveal, the live feedback endpoint storing a row (the browser cannot read the Apps Script response), and the 8 devnet tests.
 
