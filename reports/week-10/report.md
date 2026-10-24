@@ -2,7 +2,8 @@
 
 **Name:** Karas  
 **Period:** 17-24 October 2026  
-**Project:** Nine Cells, a merge tower defense game [public demo](https://nine-cells.karasdev.com/)
+**Project:** Nine Cells, a merge tower defense game [public demo](https://nine-cells.karasdev.com/) 
+
 **Focus:** Get the game ready for outside players: drop the wallet wall, add a feedback channel, give battles music and bosses, and widen the on-chain cat pool from 15 to 21 lines.
 
 ## 1. Summary
